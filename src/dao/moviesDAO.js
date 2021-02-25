@@ -304,29 +304,39 @@ export default class MoviesDAO {
       // TODO Ticket: Get Comments
       // Implement the required pipeline.
       const pipeline = [
-
         {
           $match: {
-            _id: ObjectId(id)
-          }
+            _id: new ObjectId(id),
+          },
         },
         {
           $lookup: {
-            "from":"comments",
-            "localField":"_id",
-            "foreignField":"movie_id",
-            as:"comments"
-          }},
-          {
-          $sort:{
-            date: -1
-          }
+            from: "comments",
+            let: {
+              id: "$_id",
+            },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $eq: ["$movie_id", "$$id"],
+                  },
+                },
+              },
+              {
+                $sort: {
+                  date: -1,
+                },
+              },
+            ],
+            as: "comments",
+          },
         },
         {
           $addFields: {
-              comments: "$comments",
+            comments: "$comments",
           },
-      }
+        },
       ]
       return await movies.aggregate(pipeline).next()
     } catch (e) {
